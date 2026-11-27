@@ -1,0 +1,440 @@
+# Fastlane Configuration for Tomato Animes
+# Automates iOS build, test, and deployment
+
+default_platform(:ios)
+
+platform :ios do
+  # ==========================================
+  # Configuration
+  # ==========================================
+  APP_IDENTIFIER = "com.migue.tomatoanimes"
+  APP_NAME = "Tomato Animes"
+  SCHEME = "TomatoAnimes"
+  WORKSPACE = "TomatoAnimes.xcworkspace"
+  PROJECT = "TomatoAnimes.xcodeproj"
+  CONFIGURATION = "Release"
+  EXPORT_METHOD = "app-store"
+
+  # Match configuration
+  MATCH_TYPE = "appstore"
+  MATCH_GIT_URL = ENV["MATCH_GIT_URL"]
+  MATCH_PASSWORD = ENV["MATCH_PASSWORD"]
+
+  # App Store Connect
+  ASC_API_KEY = ENV["APP_STORE_CONNECT_API_KEY"]
+  ASC_ISSUER_ID = ENV["APP_STORE_CONNECT_ISSUER_ID"]
+  ASC_KEY_ID = ENV["APP_STORE_CONNECT_KEY_ID"]
+
+  # Build settings
+  BUILD_NUMBER = ENV["BUILD_NUMBER"] || "105"
+  VERSION_NUMBER = ENV["VERSION_NUMBER"] || "1.6.1"
+
+  # ==========================================
+  # Lanes
+  # ==========================================
+
+  # -----------------------------------------------------------------------------
+  # Development Build
+  # -----------------------------------------------------------------------------
+  desc "Build development version for internal testing"
+  lane :development do
+    setup_ci
+    sync_code_signing(type: "development", readonly: true)
+    build_ios_app(
+      scheme: SCHEME,
+      workspace: WORKSPACE,
+      configuration: "Debug",
+      export_method: "development",
+      output_directory: "./build/development",
+      output_name: "#{APP_NAME}_Development_#{VERSION_NUMBER}_#{BUILD_NUMBER}.ipa",
+      clean: true,
+      silent: true,
+      export_options: {
+        compileBitcode: false,
+        uploadBitcode: false,
+        uploadSymbols: true,
+      }
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Preview/Staging Build
+  # -----------------------------------------------------------------------------
+  desc "Build preview version for TestFlight"
+  lane :preview do
+    setup_ci
+    sync_code_signing(type: "appstore", readonly: true)
+    increment_build_number(build_number: BUILD_NUMBER)
+    increment_version_number(version_number: VERSION_NUMBER)
+    build_ios_app(
+      scheme: SCHEME,
+      workspace: WORKSPACE,
+      configuration: CONFIGURATION,
+      export_method: EXPORT_METHOD,
+      output_directory: "./build/preview",
+      output_name: "#{APP_NAME}_Preview_#{VERSION_NUMBER}_#{BUILD_NUMBER}.ipa",
+      clean: true,
+      silent: true,
+      export_options: {
+        compileBitcode: false,
+        uploadBitcode: false,
+        uploadSymbols: true,
+      }
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Production Build
+  # -----------------------------------------------------------------------------
+  desc "Build production version for App Store"
+  lane :production do
+    setup_ci
+    sync_code_signing(type: "appstore", readonly: false)
+    increment_build_number(build_number: BUILD_NUMBER)
+    increment_version_number(version_number: VERSION_NUMBER)
+    build_ios_app(
+      scheme: SCHEME,
+      workspace: WORKSPACE,
+      configuration: CONFIGURATION,
+      export_method: EXPORT_METHOD,
+      output_directory: "./build/production",
+      output_name: "#{APP_NAME}_Production_#{VERSION_NUMBER}_#{BUILD_NUMBER}.ipa",
+      clean: true,
+      silent: true,
+      export_options: {
+        compileBitcode: false,
+        uploadBitcode: false,
+        uploadSymbols: true,
+      }
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # TestFlight Upload
+  # -----------------------------------------------------------------------------
+  desc "Upload to TestFlight"
+  lane :upload_testflight do
+    api_key = app_store_connect_api_key(
+      key_id: ASC_KEY_ID,
+      issuer_id: ASC_ISSUER_ID,
+      key_content: ASC_API_KEY,
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    upload_to_testflight(
+      api_key: api_key,
+      ipa: "./build/production/#{APP_NAME}_Production_#{VERSION_NUMBER}_#{BUILD_NUMBER}.ipa",
+      skip_waiting_for_build_processing: false,
+      distribute_external: true,
+      groups: ["External Testers"],
+      notify_external_testers: true,
+      changelog: changelog_from_git_commits(
+        pretty: "%h %s",
+        merge_commit_filtering: "exclude_merges"
+      ),
+      reject_build_waiting_for_review: true,
+      expire_previous_builds: true
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # App Store Upload
+  # -----------------------------------------------------------------------------
+  desc "Upload to App Store"
+  lane :upload_appstore do
+    api_key = app_store_connect_api_key(
+      key_id: ASC_KEY_ID,
+      issuer_id: ASC_ISSUER_ID,
+      key_content: ASC_API_KEY,
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      ipa: "./build/production/#{APP_NAME}_Production_#{VERSION_NUMBER}_#{BUILD_NUMBER}.ipa",
+      skip_binary_upload: false,
+      skip_metadata: false,
+      skip_screenshots: false,
+      skip_app_version_update: false,
+      force: true,
+      submit_for_review: false,
+      automatic_release: false,
+      precheck_include_in_app_purchases: false,
+      submission_information: {
+        add_id_info_uses_idfa: true,
+        add_id_info_serves_ads: true,
+        add_id_info_tracks_action: true,
+        add_id_info_tracks_install: true,
+        add_id_info_limits_tracking: true,
+        export_compliance_encryption_updated: false,
+        export_compliance_uses_encryption: false,
+        export_compliance_is_exempt: false,
+        export_compliance_compliance_required: false,
+        content_rights_contains_third_party_content: false,
+        content_rights_has_rights: true
+      }
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Screenshots
+  # -----------------------------------------------------------------------------
+  desc "Generate screenshots for App Store"
+  lane :screenshots do
+    capture_screenshots(
+      scheme: SCHEME,
+      workspace: WORKSPACE,
+      devices: [
+        "iPhone 15 Pro Max",
+        "iPhone 15 Pro",
+        "iPhone 15",
+        "iPhone 15 Plus",
+        "iPad Pro (12.9-inch) (6th generation)",
+        "iPad Pro (11-inch) (4th generation)"
+      ],
+      languages: ["pt-BR", "en-US"],
+      output_directory: "./fastlane/screenshots",
+      clear_previous_screenshots: true,
+      override_status_bar: true,
+      stop_after_first_error: false
+    )
+
+    frame_screenshots(
+      path: "./fastlane/screenshots",
+      silver: true
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Metadata
+  # -----------------------------------------------------------------------------
+  desc "Upload metadata to App Store"
+  lane :metadata do
+    api_key = app_store_connect_api_key(
+      key_id: ASC_KEY_ID,
+      issuer_id: ASC_ISSUER_ID,
+      key_content: ASC_API_KEY,
+      is_key_content_base64: true,
+      in_house: false
+    )
+
+    upload_to_app_store(
+      api_key: api_key,
+      skip_binary_upload: true,
+      skip_screenshots: false,
+      metadata_path: "./fastlane/metadata",
+      screenshots_path: "./fastlane/screenshots",
+      overwrite_screenshots: true,
+      force: true
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Certificates & Profiles
+  # -----------------------------------------------------------------------------
+  desc "Sync certificates and profiles"
+  lane :certificates do
+    match(
+      type: MATCH_TYPE,
+      app_identifier: [APP_IDENTIFIER],
+      git_url: MATCH_GIT_URL,
+      readonly: false,
+      force_for_new_devices: true
+    )
+  end
+
+  desc "Sync certificates (readonly)"
+  lane :certificates_readonly do
+    match(
+      type: MATCH_TYPE,
+      app_identifier: [APP_IDENTIFIER],
+      git_url: MATCH_GIT_URL,
+      readonly: true
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Version Management
+  # -----------------------------------------------------------------------------
+  desc "Increment build number"
+  lane :bump_build do
+    increment_build_number(
+      build_number: BUILD_NUMBER,
+      xcodeproj: PROJECT
+    )
+  end
+
+  desc "Increment version number"
+  lane :bump_version do |options|
+    version = options[:version] || VERSION_NUMBER
+    increment_version_number(
+      version_number: version,
+      xcodeproj: PROJECT
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Testing
+  # -----------------------------------------------------------------------------
+  desc "Run unit tests"
+  lane :test do
+    run_tests(
+      scheme: SCHEME,
+      workspace: WORKSPACE,
+      devices: ["iPhone 15"],
+      clean: true,
+      code_coverage: true,
+      output_directory: "./test_output",
+      result_bundle: true
+    )
+  end
+
+  desc "Run UI tests"
+  lane :ui_test do
+    run_tests(
+      scheme: "#{SCHEME}UITests",
+      workspace: WORKSPACE,
+      devices: ["iPhone 15"],
+      clean: true,
+      output_directory: "./test_output/ui"
+    )
+  end
+
+  # -----------------------------------------------------------------------------
+  # Utilities
+  # -----------------------------------------------------------------------------
+  desc "Clean build artifacts"
+  lane :clean do
+    clear_derived_data
+    clean_build_artifacts
+    sh("rm -rf ./build")
+  end
+
+  desc "Setup CI environment"
+  lane :setup_ci do
+    # Configure keychain
+    create_keychain(
+      name: "fastlane_tmp_keychain",
+      password: ENV["MATCH_PASSWORD"] || "temp_password",
+      default_keychain: true,
+      unlock: true,
+      timeout: 3600,
+      lock_when_sleeps: true
+    )
+
+    # Import certificates if available
+    if ENV["MATCH_PASSWORD"]
+      match(
+        type: MATCH_TYPE,
+        app_identifier: [APP_IDENTIFIER],
+        git_url: MATCH_GIT_URL,
+        readonly: true,
+        keychain_name: "fastlane_tmp_keychain",
+        keychain_password: ENV["MATCH_PASSWORD"]
+      )
+    end
+  end
+
+  desc "Generate changelog from git commits"
+  lane :changelog do
+    changelog = changelog_from_git_commits(
+      pretty: "- %s (%an)",
+      merge_commit_filtering: "exclude_merges",
+      tag_match_pattern: "v*"
+    )
+    UI.message(changelog)
+    changelog
+  end
+
+  # -----------------------------------------------------------------------------
+  # Complete Workflows
+  # -----------------------------------------------------------------------------
+  desc "Full development workflow"
+  lane :dev_workflow do
+    certificates_readonly
+    development
+    # upload_testflight if needed
+  end
+
+  desc "Full preview workflow"
+  lane :preview_workflow do
+    certificates
+    preview
+    upload_testflight
+  end
+
+  desc "Full production workflow"
+  lane :release_workflow do
+    certificates
+    production
+    upload_testflight
+    # upload_appstore after review
+  end
+
+  # -----------------------------------------------------------------------------
+  # Error Handling
+  # -----------------------------------------------------------------------------
+  error do |lane, exception|
+    UI.error("Lane #{lane} failed with: #{exception.message}")
+    UI.error(exception.backtrace.join("\n"))
+
+    # Send notification
+    if ENV["SLACK_WEBHOOK_URL"]
+      slack(
+        message: "Fastlane #{lane} failed: #{exception.message}",
+        success: false,
+        channel: "#builds",
+        payload: {
+          "Lane" => lane,
+          "Error" => exception.message,
+          "Build Number" => BUILD_NUMBER,
+          "Version" => VERSION_NUMBER
+        }
+      )
+    end
+  end
+end
+
+# ==========================================
+# Android Platform (placeholder)
+# ==========================================
+platform :android do
+  desc "Build Android development"
+  lane :development do
+    gradle(
+      task: "assembleDebug",
+      project_dir: "./android"
+    )
+  end
+
+  desc "Build Android preview"
+  lane :preview do
+    gradle(
+      task: "assembleRelease",
+      project_dir: "./android"
+    )
+  end
+
+  desc "Build Android production"
+  lane :production do
+    gradle(
+      task: "bundleRelease",
+      project_dir: "./android"
+    )
+  end
+
+  desc "Upload to Play Store"
+  lane :upload_playstore do
+    upload_to_play_store(
+      track: "internal",
+      aab: "./android/app/build/outputs/bundle/release/app-release.aab",
+      json_key: ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON"],
+      skip_upload_apk: true,
+      skip_upload_metadata: false,
+      skip_upload_images: false,
+      skip_upload_screenshots: false
+    )
+  end
+end

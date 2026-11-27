@@ -1,0 +1,38 @@
+# Dependencies
+node_modules/
+
+# Expo / EAS
+.expo/
+dist/
+web-build/
+
+# Build outputs
+*.ipa
+*.apk
+build/
+*.dSYM/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# EAS
+.eas/
+
+# Patch packages
+patches/

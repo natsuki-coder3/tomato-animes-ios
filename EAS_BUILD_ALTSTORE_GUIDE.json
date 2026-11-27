@@ -1,0 +1,316 @@
+{
+  "project": {
+    "name": "Tomato Animes",
+    "bundleId": "com.migue.tomatoanimes",
+    "version": "1.6.1",
+    "buildNumber": "105",
+    "deploymentTarget": "17.0",
+    "platform": "iOS",
+    "framework": "Expo (React Native)",
+    "newArchitecture": true
+  },
+  "prerequisites": {
+    "accounts": [
+      { "name": "Apple Developer Program", "cost": "$99/year", "certValidity": "1 year", "required": false, "alternative": "Free Apple ID (7-day expiry)" },
+      { "name": "Expo Account", "cost": "Free", "required": true },
+      { "name": "AltStore + AltServer", "platform": ["Windows", "iPhone"], "required": true }
+    ],
+    "tools": [
+      { "name": "Node.js", "minVersion": "20.x" },
+      { "name": "npm", "minVersion": "10.x" },
+      { "name": "Git", "required": true },
+      { "name": "EAS CLI", "installCommand": "npm install -g eas-cli" }
+    ],
+    "device": {
+      "minIOS": "17.0",
+      "udidRequired": true,
+      "trustComputer": true
+    }
+  },
+  "oneTimeSetup": {
+    "appId": {
+      "bundleId": "com.migue.tomatoanimes",
+      "type": "Explicit",
+      "capabilities": [
+        "Background Modes (audio, airplay, picture-in-picture, background-fetch, remote-notification)",
+        "Push Notifications",
+        "App Groups (group.com.migue.tomatoanimes)",
+        "Associated Domains (applinks:tomatoanimes.com)",
+        "Sign In with Apple (optional)"
+      ]
+    },
+    "provisioningProfile": {
+      "type": "iOS App Development",
+      "name": "TomatoAnimes_Development_AltStore",
+      "includesDeviceUDID": true
+    },
+    "teamId": {
+      "source": "security find-identity -v -p codesigning",
+      "format": "TEAMID123456",
+      "usedIn": "eas.json → submit.production.ios.appleTeamId"
+    },
+    "envFile": {
+      "template": ".env.example",
+      "requiredVars": [
+        "EXPO_PROJECT_ID",
+        "EAS_BUILD_PROFILE",
+        "API_BASE_URL",
+        "FIREBASE_API_KEY",
+        "FIREBASE_AUTH_DOMAIN",
+        "FIREBASE_PROJECT_ID",
+        "FIREBASE_STORAGE_BUCKET",
+        "FIREBASE_MESSAGING_SENDER_ID",
+        "FIREBASE_APP_ID",
+        "FIREBASE_MEASUREMENT_ID"
+      ],
+      "optionalVars": ["APPLOVIN_SDK_KEY"]
+    }
+  },
+  "buildCommands": {
+    "initial": [
+      "npm install -g eas-cli",
+      "eas login",
+      "eas build:configure",
+      "eas project:info"
+    ],
+    "profiles": {
+      "development": {
+        "command": "eas build --platform ios --profile development --local=false",
+        "distribution": "internal",
+        "developmentClient": true,
+        "useCase": "AltStore installation, development testing",
+        "estimatedTime": "10-15 min queue + 15-20 min build"
+      },
+      "preview": {
+        "command": "eas build --platform ios --profile preview --local=false",
+        "distribution": "internal",
+        "buildConfiguration": "Release",
+        "useCase": "QA, internal testing, screenshots"
+      },
+      "production": {
+        "command": "eas build --platform ios --profile production --local=false",
+        "distribution": "store",
+        "buildConfiguration": "Release",
+        "enterpriseProvisioning": "auto",
+        "useCase": "App Store submission"
+      },
+      "local": {
+        "command": "eas build --platform ios --profile development --local",
+        "requirement": "macOS only",
+        "benefit": "No queue, faster builds"
+      }
+    },
+    "utilityCommands": {
+      "listBuilds": "eas build:list --platform ios --limit 5",
+      "downloadBuild": "eas build:download --platform ios --output tomato-animes.ipa",
+      "viewLogs": "eas build:view <BUILD_ID>",
+      "manageCredentials": "eas credentials",
+      "clearCache": "eas build --profile development --clear-cache"
+    }
+  },
+  "altStoreInstallation": {
+    "getIPA": {
+      "method1": "EAS Dashboard → Builds → Artifacts → Download .ipa",
+      "method2": "CLI: eas build:download --platform ios --output tomato-animes.ipa"
+    },
+    "installMethods": {
+      "altStore": {
+        "steps": [
+          "Connect iPhone via USB",
+          "Open AltStore on iPhone → My Apps → +",
+          "Select .ipa (AirDrop/Files/iTunes)",
+          "Wait for install",
+          "Settings → General → VPN & Device Management → Trust Developer Profile"
+        ],
+        "requirements": ["AltServer running on Windows", "Same Apple ID in AltStore + Apple Developer"]
+      },
+      "sideloadly": {
+        "url": "https://sideloadly.io/",
+        "steps": [
+          "Download Sideloadly",
+          "Connect iPhone → Trust computer",
+          "Drag .ipa into Sideloadly",
+          "Enter Apple ID + App-Specific Password",
+          "Click Start"
+        ],
+        "useCase": "AltStore alternative on Windows"
+      }
+    }
+  },
+  "renewalProcess": {
+    "freeAppleId": {
+      "validity": "7 days",
+      "methods": [
+        { "name": "AltStore Wi-Fi Sync", "frequency": "Daily (auto)", "requirement": "AltServer running on PC, same Wi-Fi" },
+        { "name": "USB Refresh", "frequency": "Every 7 days", "steps": "Connect iPhone → AltStore → My Apps → Refresh" },
+        { "name": "Rebuild & Reinstall", "frequency": "Every 7 days", "command": "eas build --profile development" }
+      ]
+    },
+    "paidDeveloper": {
+      "validity": "1 year",
+      "renewal": "Annual certificate/profile renewal via Apple Developer Console"
+    },
+    "autoRefreshSetup": [
+      "Keep AltServer running in Windows System Tray",
+      "iPhone: Settings → AltStore → Enable Background App Refresh",
+      "Same Wi-Fi network overnight",
+      "Verify: AltStore → My Apps → shows 'Refreshed X hours ago'"
+    ]
+  },
+  "troubleshooting": [
+    { "error": "Provisioning profile doesn't match bundle identifier", "cause": "Bundle ID mismatch", "fix": "Check app.config.js bundleIdentifier matches Apple Console exactly" },
+    { "error": "No signing certificate found", "cause": "Cert not in Keychain / wrong team", "fix": "Run 'eas credentials' → Select iOS → Let EAS manage certs" },
+    { "error": "App crashes on launch", "cause": "Native module linking / Metro cache", "fix": "npx expo start -c → Clear Metro cache; Check Xcode Console for TomatoSignModule logs" },
+    { "error": "Video player black screen", "cause": "UnityPlayerModule is stub", "fix": "KNOWN LIMITATION — Shows placeholder. See Section 8 for RE path" },
+    { "error": "Login fails / API 401", "cause": "TomatoSignModule returns mock signature", "fix": "KNOWN LIMITATION — Mock rejected by server. See Section 8" },
+    { "error": "Payment/DRM error", "cause": "TobEncryptModule uses CryptoKit fallback", "fix": "KNOWN LIMITATION — Server expects original algorithm. See Section 8" },
+    { "error": "EAS build stuck in queue", "cause": "High demand / free tier", "fix": "Wait 10-30 min; Or use --local on Mac; Or upgrade EAS plan" },
+    { "error": "Pod install failed", "cause": "CocoaPods version / native deps", "fix": "eas build --profile development --clear-cache" },
+    { "error": "Metro bundler error", "cause": "Version mismatch", "fix": "npm install → npx expo install --fix" },
+    { "error": "AltStore 'Could not install'", "cause": "Profile expired / device not in profile", "fix": "Rebuild with 'eas build --profile development' → reinstall" },
+    { "error": "White screen after splash", "cause": "JS bundle not loaded / crash", "fix": "Check device logs: 'npx react-native log-ios' or Xcode Console" }
+  ],
+  "knownLimitations": [
+    {
+      "module": "TomatoSignModule",
+      "originalLibrary": "libtomatosign.so",
+      "currentImplementation": "Mock signature generation (deterministic hash)",
+      "riskLevel": "critical",
+      "estimatedREHours": 40,
+      "impact": "ALL API requests fail authentication (login, search, episodes)",
+      "file": "src/native/ios/TomatoSignModule.swift",
+      "stubWarning": "⚠️ [STUB] TomatoSignModule - Using mock implementation. Original libtomatosign.so needs REIMPLEMENTATION (40h, Critical)"
+    },
+    {
+      "module": "UnityPlayerModule",
+      "originalLibrary": "libunitycoherencenative.so",
+      "currentImplementation": "Simulated playback state, no actual rendering",
+      "riskLevel": "critical",
+      "estimatedREHours": 40,
+      "impact": "Player screen opens but shows placeholder — no video playback",
+      "file": "src/native/ios/UnityPlayerModule.swift",
+      "stubWarning": "⚠️ [STUB] UnityPlayerModule - Rendering placeholder. Original libunitycoherencenative.so needs REIMPLEMENTATION (40h, Critical)"
+    },
+    {
+      "module": "TobEncryptModule",
+      "originalLibrary": "libtobEmbedPagEncrypt.so",
+      "currentImplementation": "Apple CryptoKit (AES-256-GCM) placeholder",
+      "riskLevel": "critical",
+      "estimatedREHours": 24,
+      "impact": "Payment flows, premium content, DRM may fail",
+      "file": "src/native/ios/TobEncryptModule.swift",
+      "stubWarning": "⚠️ [STUB] TobEncryptModule - Using CryptoKit placeholder. Original libtobEmbedPagEncrypt.so needs REIMPLEMENTATION (24h, Critical)"
+    },
+    {
+      "module": "NativeFiltersModule",
+      "originalLibrary": "Custom Metal shaders",
+      "currentImplementation": "Identity pass-through",
+      "riskLevel": "medium",
+      "estimatedREHours": 16,
+      "impact": "No custom image filters in UI",
+      "file": "src/native/ios/NativeFiltersModule.swift"
+    },
+    {
+      "module": "FFmpegModule",
+      "originalLibrary": "FFmpeg",
+      "currentImplementation": "Stub",
+      "riskLevel": "medium",
+      "estimatedREHours": 20,
+      "impact": "Media processing limited",
+      "file": "src/native/ios/FFmpegModule.swift"
+    },
+    {
+      "module": "NMSModule",
+      "originalLibrary": "Unknown",
+      "currentImplementation": "Stub",
+      "riskLevel": "medium",
+      "estimatedREHours": 16,
+      "impact": "Network/media sync limited",
+      "file": "src/native/ios/NMSModule.swift"
+    }
+  ],
+  "nextStepsForFullFunctionality": [
+    {
+      "priority": 1,
+      "title": "API Access - TomatoSignModule",
+      "hours": 40,
+      "steps": [
+        "Extract libtomatosign.so from original Android APK",
+        "Analyze in Ghidra/IDA Pro (ARM64, stripped)",
+        "Identify JNI entry points, signing algorithm, key derivation",
+        "Reimplement in Swift (TomatoSignModule.swift)",
+        "Test: Login → Search → Episode list → Play"
+      ],
+      "files": ["src/native/ios/TomatoSignModule.swift"]
+    },
+    {
+      "priority": 2,
+      "title": "Video Playback - UnityPlayerModule",
+      "hours": 40,
+      "steps": [
+        "Extract libunitycoherencenative.so + Unity Data folder from APK",
+        "Identify Unity version (likely 2021/2022 LTS)",
+        "Build Unity iOS Framework (File → Build Settings → iOS)",
+        "Embed in Xcode project (Frameworks/)",
+        "Bridge: UnityPlayerModule.swift → UnitySendMessage",
+        "Test: Video URL → Playback → Subtitles → PiP"
+      ],
+      "files": ["src/native/ios/UnityPlayerModule.swift"]
+    },
+    {
+      "priority": 3,
+      "title": "Encryption/DRM - TobEncryptModule",
+      "hours": 24,
+      "steps": [
+        "Extract libtobEmbedPagEncrypt.so from APK",
+        "Trace encrypt/decrypt calls, key management",
+        "Identify AES mode, IV generation, key wrapping",
+        "Reimplement in TobEncryptModule.swift",
+        "Test: Payment flow, premium episode unlock"
+      ],
+      "files": ["src/native/ios/TobEncryptModule.swift"]
+    },
+    {
+      "priority": 4,
+      "title": "Filters - NativeFiltersModule",
+      "hours": 16,
+      "steps": [
+        "Analyze NativeFiltersModule.swift stubs",
+        "Port Metal shaders from Android (RenderScript/OpenGL)",
+        "Implement: Gaussian blur, color grading, anime-style filters",
+        "Test: Glass UI effects, thumbnail filters"
+      ],
+      "files": ["src/native/ios/NativeFiltersModule.swift"]
+    }
+  ],
+  "quickTestChecklist": [
+    { "test": "App launches (Splash → Welcome)", "expected": "No crash, shows onboarding", "category": "launch" },
+    { "test": "Tab navigation (Home, Search, Downloads, Profile)", "expected": "Smooth transitions", "category": "navigation" },
+    { "test": "Theme toggle (Light/Dark/Glass)", "expected": "Immediate UI update", "category": "ui" },
+    { "test": "Settings screen opens", "expected": "All sections render", "category": "ui" },
+    { "test": "Profile screen opens", "expected": "Shows mock user data", "category": "ui" },
+    { "test": "Search screen opens", "expected": "Keyboard works, history shows", "category": "ui" },
+    { "test": "Player screen opens", "expected": "Shows placeholder (not black)", "category": "player", "note": "Mock player — expected" },
+    { "test": "Background → Foreground", "expected": "No crash, state preserved", "category": "lifecycle" },
+    { "test": "Pull-to-refresh (Home)", "expected": "Spinner shows, no crash", "category": "interaction" },
+    { "test": "Orientation lock (Portrait)", "expected": "Stays portrait on rotate", "category": "config" }
+  ],
+  "quickReferenceCommands": {
+    "buildDevelopment": "eas build --platform ios --profile development",
+    "listBuilds": "eas build:list --platform ios --limit 3",
+    "downloadLatest": "eas build:download --platform ios --output tomato.ipa",
+    "viewLogs": "eas build:view <BUILD_ID>",
+    "manageCredentials": "eas credentials",
+    "reconfigure": "eas build:configure"
+  },
+  "usefulLinks": {
+    "easDashboard": "https://expo.dev/accounts/[you]/projects/tomato-animes/builds",
+    "appleDeveloper": "https://developer.apple.com/account/",
+    "altStore": "https://altstore.io/",
+    "sideloadly": "https://sideloadly.io/",
+    "expoIosBuildDocs": "https://docs.expo.dev/build/ios/",
+    "udidFinder": "https://get.udid.io/"
+  },
+  "created": "2026-11-26",
+  "notes": "Stubs are intentional — app builds and runs. Full functionality requires RE work in Section 8."
+}

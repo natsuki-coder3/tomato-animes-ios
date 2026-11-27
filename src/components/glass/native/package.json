@@ -1,0 +1,66 @@
+{
+  "name": "liquid-glass-native",
+  "version": "1.0.0",
+  "description": "Native iOS module for Liquid Glass UIVisualEffectView",
+  "main": "GlassEffectViewManager.m",
+  "types": "GlassEffectViewManager.d.ts",
+  "scripts": {
+    "build": "xcodebuild -project LiquidGlass.xcodeproj -scheme LiquidGlass -configuration Release",
+    "test": "xcodebuild test -project LiquidGlass.xcodeproj -scheme LiquidGlass -destination 'platform=iOS Simulator,name=iPhone 15'"
+  },
+  "keywords": [
+    "react-native",
+    "ios",
+    "glassmorphism",
+    "uivisualeffectview",
+    "liquid-glass"
+  ],
+  "author": "Tomato Animes Team",
+  "license": "MIT",
+  "peerDependencies": {
+    "react-native": ">=0.73.0"
+  },
+  "devDependencies": {
+    "@types/react-native": "^0.73.0"
+  },
+  "react-native": {
+    "platforms": {
+      "ios": {
+        "sourceFiles": [
+          "GlassEffectView.swift",
+          "GlassEffectViewManager.m",
+          "GlassEffectViewManager.h",
+          "GlassEffectViewBridge.swift"
+        ],
+        "podspec": {
+          "name": "LiquidGlass",
+          "version": "1.0.0",
+          "summary": "iOS 26 Liquid Glass UIVisualEffectView for React Native",
+          "description": "Native module providing UIVisualEffectView with dynamic blur, tint, and vibrancy for React Native glassmorphism components.",
+          "homepage": "https://github.com/tomato-animes/liquid-glass",
+          "license": "MIT",
+          "authors": {
+            "Tomato Animes Team": "team@tomatoanimes.com"
+          },
+          "platforms": {
+            "ios": "17.0"
+          },
+          "source": {
+            "git": "https://github.com/tomato-animes/liquid-glass.git",
+            "tag": "1.0.0"
+          },
+          "source_files": "*.{swift,m,h}",
+          "requires_arc": true,
+          "swift_version": "5.9",
+          "dependencies": {
+            "React-Core": []
+          },
+          "pod_target_xcconfig": {
+            "SWIFT_VERSION": "5.9",
+            "DEFINES_MODULE": "YES"
+          }
+        }
+      }
+    }
+  }
+}
