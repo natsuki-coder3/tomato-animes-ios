@@ -15,7 +15,7 @@ on:
 
 jobs:
   build:
-    name: Build iOS on macOS
+    name: Build iOS on macOS (Local)
     runs-on: macos-latest
     timeout-minutes: 60
 
@@ -37,14 +37,38 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
+      - name: Install expect for automation
+        run: brew install expect
+
+      - name: Configure EAS Credentials locally (macOS runner)
+        run: |
+          # Create expect script to automate credentials setup on macOS
+          cat > /tmp/setup_credentials.exp << 'EXPECT_EOF'
+          spawn eas credentials:configure-build --platform ios --profile development
+          expect "Do you want to log in to your Apple account?"
+          send "y\r"
+          expect "Apple ID:"
+          send "$env(APPLE_ID)\r"
+          expect "Password:"
+          send "$env(APPLE_PASSWORD)\r"
+          expect "Team:"
+          send "\r"
+          expect "Distribution:"
+          send "internal\r"
+          expect eof
+          EXPECT_EOF
+
+          APPLE_ID="${{ secrets.APPLE_ID }}" APPLE_PASSWORD="${{ secrets.APPLE_PASSWORD }}" expect /tmp/setup_credentials.exp
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+
       - name: Run EAS Build locally
         run: |
           eas build --platform ios --profile ${{ github.event.inputs.profile }} --local --non-interactive --freeze-credentials
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          EXPO_APPLE_ID: ${{ secrets.APPLE_ID }}
-          EXPO_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-          EXPO_DISTRIBUTION: internal
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
