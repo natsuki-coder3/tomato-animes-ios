@@ -37,32 +37,14 @@ jobs:
       - name: Install dependencies
         run: npm ci --ignore-scripts
 
-      - name: Configure EAS credentials (local)
-        run: |
-          mkdir -p ~/.eas
-          # teamId omitted - EAS will create Personal Team automatically on macOS runner
-          cat > ~/.eas/credentials.json << 'EOF'
-          {
-            "ios": {
-              "development": {
-                "appleId": "${{ secrets.APPLE_ID }}",
-                "applePassword": "${{ secrets.APPLE_PASSWORD }}",
-                "distribution": "internal"
-              }
-            }
-          }
-          EOF
-        env:
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
-
       - name: Run EAS Build locally
         run: |
           eas build --platform ios --profile ${{ github.event.inputs.profile }} --local --non-interactive
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          EAS_APPLE_ID: ${{ secrets.APPLE_ID }}
+          EAS_APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          EAS_DISTRIBUTION: internal
 
       - name: Upload IPA as artifact
         uses: actions/upload-artifact@v4
