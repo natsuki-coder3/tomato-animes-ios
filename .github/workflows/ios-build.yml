@@ -39,7 +39,7 @@ jobs:
 
       - name: Run EAS Build locally
         run: |
-          eas build --platform ios --profile ${{ github.event.inputs.profile }} --local --non-interactive
+          eas build --platform ios --profile ${{ github.event.inputs.profile }} --local --non-interactive --freeze-credentials
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
           EXPO_APPLE_ID: ${{ secrets.APPLE_ID }}
