@@ -1,0 +1,13 @@
+diff --git a/package.json b/package.json
+index 1234567..abcdefg 100644
+--- a/package.json
++++ b/package.json
+@@ -1,6 +1,6 @@
+ {
+   "name": "react-native-screens",
+   "version": "3.31.0",
+-  "scripts": { "postinstall": "bob build && husky install" },
++  "scripts": { "postinstall": "husky install" },
+   "main": "index.js",
+   "types": "index.d.ts",
+   "sideEffects": false
