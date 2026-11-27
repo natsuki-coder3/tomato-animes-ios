@@ -29,11 +29,12 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
+      - name: Install global CLI tools
+        run: |
+          npm install -g @react-native-community/bob eas-cli
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Install EAS CLI
-        run: npm install -g eas-cli
 
       - name: Configure EAS credentials (local)
         run: |
